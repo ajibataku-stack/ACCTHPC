@@ -1,0 +1,32 @@
+name: Perbarui data hotspot
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"   # tiap 3 jam (UTC)
+  workflow_dispatch: {}        # bisa dijalankan manual dari tab Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hotspot
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ambil data FIRMS
+        env:
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+        run: python3 ambil_firms.py --hari 5 --keluar data/hotspot_idn.csv
+
+      - name: Simpan jika ada perubahan
+        run: |
+          git config user.name "hotspot-bot"
+          git config user.email "hotspot-bot@users.noreply.github.com"
+          git add data/hotspot_idn.csv
+          git diff --cached --quiet || git commit -m "Perbarui data hotspot $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
